@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- الأساسية -->
-<link rel="icon" href="https://i.ibb.co/PGV109B2/Spring-Mark.png" type="image/png">
-
-<!-- النسخة الاحتياطية -->
-<link rel="shortcut icon" href="https://i.ibb.co/PGV109B2/Spring-Mark.png">
+    <link rel="icon" href="https://i.ibb.co/PGV109B2/Spring-Mark.png" type="image/png">
+    <!-- النسخة الاحتياطية -->
+    <link rel="shortcut icon" href="https://i.ibb.co/PGV109B2/Spring-Mark.png">
     <title>Spring Mark | التصميم والإبداع</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
@@ -850,21 +849,6 @@
         }
     </style>
 </head>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-</script>
 <body>
     <!-- شريط التنقل -->
     <nav class="navbar">
@@ -938,6 +922,10 @@
     <div class="admin-panel" id="adminPanel">
         <div id="adminLoginForm" class="admin-login">
             <h3 data-translate="admin_login">تسجيل الدخول للإدارة</h3>
+            <div class="form-group">
+                <label data-translate="email">البريد الإلكتروني</label>
+                <input type="email" class="form-control" id="adminEmail" required>
+            </div>
             <div class="form-group">
                 <label data-translate="password">كلمة المرور</label>
                 <input type="password" class="form-control" id="adminPassword" required>
@@ -1180,11 +1168,30 @@
         </div>
     </section>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+
     <!-- JavaScript -->
     <script>
-        // كلمة مرور الإدارة (يمكن تغييرها)
-        const ADMIN_PASSWORD = "SpringMark@2023";
-        
+        // إعدادات Firebase - استبدل بمعلومات مشروعك
+        const firebaseConfig = {
+            apiKey: "AIzaSy...",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+
         // بيانات الترجمة متعددة اللغات
         const translations = {
             'ar': {
@@ -1476,12 +1483,13 @@
             }
         });
 
-        // لوحة التحكم مع كلمة المرور
+        // لوحة التحكم
         const adminToggle = document.getElementById('adminToggle');
         const adminPanel = document.getElementById('adminPanel');
         const adminLoginForm = document.getElementById('adminLoginForm');
         const adminContent = document.getElementById('adminContent');
         const loginBtn = document.getElementById('loginBtn');
+        const adminEmail = document.getElementById('adminEmail');
         const adminPassword = document.getElementById('adminPassword');
         const adminTabs = document.querySelectorAll('.admin-tab');
         const adminContents = document.querySelectorAll('.admin-content');
@@ -1493,16 +1501,24 @@
             }, 10);
             adminLoginForm.style.display = 'block';
             adminContent.style.display = 'none';
+            adminEmail.value = '';
             adminPassword.value = '';
         });
         
-        loginBtn.addEventListener('click', function() {
-            if (adminPassword.value === ADMIN_PASSWORD) {
+        loginBtn.addEventListener('click', async function() {
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(
+                    adminEmail.value,
+                    adminPassword.value
+                );
+                
                 adminLoginForm.style.display = 'none';
                 adminContent.style.display = 'block';
                 loadOrders();
                 loadProjects();
-            } else {
+                
+            } catch (error) {
+                console.error("Login error: ", error);
                 alert(translations[document.documentElement.lang]['password_incorrect']);
             }
         });
@@ -1542,7 +1558,7 @@
             modalProjectTitle.textContent = project.title;
             modalProjectCategory.textContent = project.category;
             modalProjectDescription.textContent = project.desc;
-            modalProjectDate.textContent = `${translations[document.documentElement.lang]['added_on']}: ${project.date || new Date().toLocaleDateString()}`;
+            modalProjectDate.textContent = `${translations[document.documentElement.lang]['added_on']}: ${new Date(project.date).toLocaleDateString()}`;
             
             modalProjectGallery.innerHTML = '';
             if (project.images && project.images.length > 0) {
@@ -1622,17 +1638,6 @@
                 
                 const reader = new FileReader();
                 
-                reader.onloadstart = function() {
-                    progressBar.style.width = '0%';
-                };
-                
-                reader.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        const percentLoaded = Math.round((e.loaded / e.total) * 100);
-                        progressBar.style.width = percentLoaded + '%';
-                    }
-                };
-                
                 reader.onload = function(event) {
                     uploadedImages.push(event.target.result);
                     
@@ -1669,119 +1674,153 @@
                     imgContainer.appendChild(img);
                     imgContainer.appendChild(removeBtn);
                     previewContainer.appendChild(imgContainer);
-                    
-                    if (index === files.length - 1) {
-                        progressBar.style.width = '0%';
-                    }
                 };
                 
                 reader.readAsDataURL(file);
             });
         }
 
-        // تحميل المشاريع من localStorage
-        function loadProjects() {
-            const projects = JSON.parse(localStorage.getItem('projects')) || [];
-            
-            projectsList.innerHTML = '';
-            portfolioGrid.innerHTML = '';
-            
-            projects.forEach((project, index) => {
-                // إضافة إلى لوحة التحكم
-                const projectItem = document.createElement('div');
-                projectItem.className = 'project-item';
+        // تحميل المشاريع من Firestore
+        async function loadProjects() {
+            try {
+                const querySnapshot = await db.collection("projects").orderBy("date", "desc").get();
                 
-                let imagesHtml = '';
-                if (project.images && project.images.length > 0) {
-                    imagesHtml = project.images.map(img => 
-                        `<img src="${img}" style="max-width: 100px; max-height: 100px; border-radius: 5px; margin: 5px;">`
-                    ).join('');
-                }
+                projectsList.innerHTML = '';
+                portfolioGrid.innerHTML = '';
                 
-                projectItem.innerHTML = `
-                    <h4>${project.title}</h4>
-                    <p><strong>${translations[document.documentElement.lang]['project_category']}:</strong> ${project.category}</p>
-                    <p>${project.desc}</p>
-                    <div style="margin: 10px 0;">${imagesHtml}</div>
-                    <button class="btn-admin view-project" data-index="${index}">${translations[document.documentElement.lang]['view_project']}</button>
-                    <button class="btn-admin delete-project" data-index="${index}">${translations[document.documentElement.lang]['delete']}</button>
-                `;
-                projectsList.appendChild(projectItem);
-                
-                // إضافة إلى معرض الأعمال (أول صورة فقط لكل مشروع)
-                if (project.images && project.images.length > 0) {
-                    const portfolioItem = document.createElement('div');
-                    portfolioItem.className = 'portfolio-item';
-                    portfolioItem.innerHTML = `
-                        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;">
-                            <img src="${project.images[0]}" alt="${project.title}" class="portfolio-img" style="object-fit:contain;">
-                        </div>
-                        <div class="portfolio-overlay">
-                            <h3>${project.title}</h3>
-                            <p>${project.category}</p>
-                            <button class="submit-btn view-project-btn" data-index="${index}" style="margin-top: 15px; width: auto; padding: 8px 20px;">
-                                ${translations[document.documentElement.lang]['view_project']}
-                            </button>
-                        </div>
+                querySnapshot.forEach((doc) => {
+                    const project = doc.data();
+                    
+                    // إضافة إلى لوحة التحكم
+                    const projectItem = document.createElement('div');
+                    projectItem.className = 'project-item';
+                    
+                    let imagesHtml = '';
+                    if (project.images && project.images.length > 0) {
+                        imagesHtml = project.images.map(img => 
+                            `<img src="${img}" style="max-width: 100px; max-height: 100px; border-radius: 5px; margin: 5px;">`
+                        ).join('');
+                    }
+                    
+                    projectItem.innerHTML = `
+                        <h4>${project.title}</h4>
+                        <p><strong>${translations[document.documentElement.lang]['project_category']}:</strong> ${project.category}</p>
+                        <p>${project.desc}</p>
+                        <div style="margin: 10px 0;">${imagesHtml}</div>
+                        <button class="btn-admin view-project" data-id="${doc.id}">
+                            ${translations[document.documentElement.lang]['view_project']}
+                        </button>
+                        <button class="btn-admin delete-project" data-id="${doc.id}">
+                            ${translations[document.documentElement.lang]['delete']}
+                        </button>
                     `;
-                    portfolioGrid.appendChild(portfolioItem);
-                }
-            });
-            
-            // إضافة أحداث لعرض المشاريع
-            document.querySelectorAll('.view-project, .view-project-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const index = this.getAttribute('data-index');
-                    const projects = JSON.parse(localStorage.getItem('projects')) || [];
-                    if (projects[index]) {
-                        openProjectModal(projects[index]);
+                    projectsList.appendChild(projectItem);
+                    
+                    // إضافة إلى معرض الأعمال (أول صورة فقط لكل مشروع)
+                    if (project.images && project.images.length > 0) {
+                        const portfolioItem = document.createElement('div');
+                        portfolioItem.className = 'portfolio-item';
+                        portfolioItem.innerHTML = `
+                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;">
+                                <img src="${project.images[0]}" alt="${project.title}" class="portfolio-img" style="object-fit:contain;">
+                            </div>
+                            <div class="portfolio-overlay">
+                                <h3>${project.title}</h3>
+                                <p>${project.category}</p>
+                                <button class="submit-btn view-project-btn" data-id="${doc.id}" style="margin-top: 15px; width: auto; padding: 8px 20px;">
+                                    ${translations[document.documentElement.lang]['view_project']}
+                                </button>
+                            </div>
+                        `;
+                        portfolioGrid.appendChild(portfolioItem);
                     }
                 });
-            });
-            
-            // إضافة أحداث لحذف المشاريع
-            document.querySelectorAll('.delete-project').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const index = this.getAttribute('data-index');
-                    const projects = JSON.parse(localStorage.getItem('projects')) || [];
-                    projects.splice(index, 1);
-                    localStorage.setItem('projects', JSON.stringify(projects));
-                    loadProjects();
+                
+                // أحداث عرض المشاريع
+                document.querySelectorAll('.view-project, .view-project-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const docId = this.getAttribute('data-id');
+                        const doc = await db.collection("projects").doc(docId).get();
+                        if (doc.exists) {
+                            openProjectModal(doc.data());
+                        }
+                    });
                 });
-            });
+                
+                // أحداث حذف المشاريع
+                document.querySelectorAll('.delete-project').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        if (confirm(translations[document.documentElement.lang]['delete_confirm'])) {
+                            const docId = this.getAttribute('data-id');
+                            await db.collection("projects").doc(docId).delete();
+                            loadProjects();
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error("Error loading projects: ", error);
+                alert("حدث خطأ أثناء تحميل المشاريع");
+            }
         }
         
         // إضافة مشروع جديد
-        addProjectForm.addEventListener('submit', function(e) {
+        addProjectForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            if (uploadedImages.length === 0) {
-                alert(translations[document.documentElement.lang]['upload_images_required']);
-                return;
+            try {
+                if (uploadedImages.length === 0) {
+                    alert(translations[document.documentElement.lang]['upload_images_required']);
+                    return;
+                }
+                
+                // رفع الصور إلى Firebase Storage
+                const imageUrls = [];
+                for (let i = 0; i < uploadedImages.length; i++) {
+                    const response = await fetch(uploadedImages[i]);
+                    const blob = await response.blob();
+                    const storageRef = storage.ref(`projects/${Date.now()}_${i}`);
+                    const uploadTask = storageRef.put(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                progressBar.style.width = progress + '%';
+                            },
+                            (error) => {
+                                reject(error);
+                            },
+                            async () => {
+                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                                imageUrls.push(downloadURL);
+                                resolve();
+                            }
+                        );
+                    });
+                }
+                
+                // حفظ بيانات المشروع
+                await db.collection("projects").add({
+                    title: document.getElementById('projectTitle').value,
+                    desc: document.getElementById('projectDesc').value,
+                    images: imageUrls,
+                    category: document.getElementById('projectCategory').value,
+                    date: new Date().toISOString()
+                });
+                
+                this.reset();
+                previewContainer.innerHTML = '';
+                uploadedImages = [];
+                progressBar.style.width = '0%';
+                loadProjects();
+                
+                alert("تم إضافة المشروع بنجاح");
+                
+            } catch (error) {
+                console.error("Error adding project: ", error);
+                alert("حدث خطأ أثناء إضافة المشروع");
             }
-            
-            const project = {
-                title: document.getElementById('projectTitle').value,
-                desc: document.getElementById('projectDesc').value,
-                images: uploadedImages,
-                category: document.getElementById('projectCategory').options[document.getElementById('projectCategory').selectedIndex].text,
-                date: new Date().toLocaleDateString()
-            };
-            
-            const projects = JSON.parse(localStorage.getItem('projects')) || [];
-            projects.push(project);
-            localStorage.setItem('projects', JSON.stringify(projects));
-            
-            this.reset();
-            previewContainer.innerHTML = '';
-            uploadedImages = [];
-            loadProjects();
-            
-            // إغلاق لوحة التحكم بعد الإضافة
-            adminPanel.classList.remove('active');
-            setTimeout(() => {
-                adminPanel.style.display = 'none';
-            }, 300);
         });
 
         // إدارة الطلبات مع CAPTCHA
@@ -1809,64 +1848,76 @@
             currentCaptcha = generateCaptcha();
         });
 
-        // تحميل الطلبات من localStorage
-        function loadOrders() {
-            const orders = JSON.parse(localStorage.getItem('orders')) || [];
-            
-            ordersList.innerHTML = '';
-            
-            orders.forEach((order, index) => {
-                const orderItem = document.createElement('div');
-                orderItem.className = 'order-item';
-                orderItem.innerHTML = `
-                    <h4>${order.name} - ${order.service}</h4>
-                    <p>${order.email} | ${order.phone}</p>
-                    <p>${order.details}</p>
-                    <p><small>${order.date}</small></p>
-                    <button class="btn-admin complete-order" data-index="${index}">${translations[document.documentElement.lang]['complete_order']}</button>
-                `;
-                ordersList.appendChild(orderItem);
-            });
-            
-            // إضافة أحداث لإكمال الطلبات
-            document.querySelectorAll('.complete-order').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const index = this.getAttribute('data-index');
-                    const orders = JSON.parse(localStorage.getItem('orders')) || [];
-                    orders.splice(index, 1);
-                    localStorage.setItem('orders', JSON.stringify(orders));
-                    loadOrders();
+        // تحميل الطلبات من Firestore
+        async function loadOrders() {
+            try {
+                const querySnapshot = await db.collection("orders").orderBy("date", "desc").get();
+                
+                ordersList.innerHTML = '';
+                
+                querySnapshot.forEach((doc) => {
+                    const order = doc.data();
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'order-item';
+                    orderItem.innerHTML = `
+                        <h4>${order.name} - ${order.service}</h4>
+                        <p>${order.email} | ${order.phone}</p>
+                        <p>${order.details}</p>
+                        <p><small>${new Date(order.date).toLocaleString()}</small></p>
+                        <button class="btn-admin complete-order" data-id="${doc.id}">
+                            ${translations[document.documentElement.lang]['complete_order']}
+                        </button>
+                    `;
+                    ordersList.appendChild(orderItem);
                 });
-            });
+                
+                // أحداث إكمال الطلبات
+                document.querySelectorAll('.complete-order').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        if (confirm('هل تم تنفيذ هذا الطلب؟')) {
+                            const docId = this.getAttribute('data-id');
+                            await db.collection("orders").doc(docId).delete();
+                            loadOrders();
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error("Error loading orders: ", error);
+                alert("حدث خطأ أثناء تحميل الطلبات");
+            }
         }
         
         // إرسال طلب جديد مع التحقق من CAPTCHA
-        orderForm.addEventListener('submit', function(e) {
+        orderForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            if (captchaInput.value !== currentCaptcha) {
-                alert(translations[document.documentElement.lang]['invalid_captcha']);
+            try {
+                if (captchaInput.value !== currentCaptcha) {
+                    alert(translations[document.documentElement.lang]['invalid_captcha']);
+                    currentCaptcha = generateCaptcha();
+                    return;
+                }
+                
+                await db.collection("orders").add({
+                    name: document.getElementById('clientName').value,
+                    email: document.getElementById('clientEmail').value,
+                    phone: document.getElementById('clientPhone').value,
+                    service: document.getElementById('serviceType').value,
+                    details: document.getElementById('projectDetails').value,
+                    date: new Date().toISOString(),
+                    status: "pending"
+                });
+                
+                alert(translations[document.documentElement.lang]['order_success']);
+                this.reset();
                 currentCaptcha = generateCaptcha();
-                return;
+                loadOrders();
+                
+            } catch (error) {
+                console.error("Error submitting order: ", error);
+                alert("حدث خطأ أثناء إرسال الطلب");
             }
-            
-            const order = {
-                name: document.getElementById('clientName').value,
-                email: document.getElementById('clientEmail').value,
-                phone: document.getElementById('clientPhone').value,
-                service: document.getElementById('serviceType').options[document.getElementById('serviceType').selectedIndex].text,
-                details: document.getElementById('projectDetails').value,
-                date: new Date().toLocaleString()
-            };
-            
-            const orders = JSON.parse(localStorage.getItem('orders')) || [];
-            orders.push(order);
-            localStorage.setItem('orders', JSON.stringify(orders));
-            
-            alert(translations[document.documentElement.lang]['order_success']);
-            this.reset();
-            currentCaptcha = generateCaptcha();
-            loadOrders();
         });
 
         // إعدادات الموقع
@@ -1898,9 +1949,9 @@
             G = Math.round(G);
             B = Math.round(B);
 
-            const RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
-            const GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
-            const BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
+            const RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16);
+            const GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16);
+            const BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16);
 
             return "#"+RR+GG+BB;
         }
@@ -1940,8 +1991,16 @@
             panelSizeValue.textContent = savedPanelWidth + 'px';
             
             generateCaptcha();
-            loadProjects();
-            loadOrders();
+            
+            // تحقق من تسجيل الدخول التلقائي
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    adminLoginForm.style.display = 'none';
+                    adminContent.style.display = 'block';
+                    loadOrders();
+                    loadProjects();
+                }
+            });
             
             // إضافة تأثيرات التحميل
             document.querySelectorAll('section').forEach((section, index) => {
